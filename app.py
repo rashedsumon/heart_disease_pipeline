@@ -29,26 +29,23 @@ except FileNotFoundError as e:
 st.sidebar.header("Enter Patient Details")
 
 def user_input_features():
-    age = st.sidebar.number_input("Age", 1, 120, 50)
-    sex = st.sidebar.selectbox("Sex (1=Male,0=Female)", [0, 1])
-    cp = st.sidebar.slider("Chest Pain Type (0-3)", 0, 3, 1)
-    trestbps = st.sidebar.number_input("Resting BP", 80, 200, 120)
-    chol = st.sidebar.number_input("Cholesterol", 100, 600, 200)
-    fbs = st.sidebar.selectbox("Fasting Blood Sugar >120 mg/dl", [0, 1])
-    restecg = st.sidebar.slider("Resting ECG (0-2)", 0, 2, 1)
-    thalach = st.sidebar.number_input("Max Heart Rate", 50, 250, 150)
-    exang = st.sidebar.selectbox("Exercise Induced Angina", [0, 1])
-    oldpeak = st.sidebar.number_input("ST Depression", 0.0, 10.0, 1.0)
-    slope = st.sidebar.slider("Slope of ST Segment (0-2)", 0, 2, 1)
-    ca = st.sidebar.slider("Major Vessels (0-3)", 0, 3, 0)
-    thal = st.sidebar.slider("Thalassemia (0-3)", 0, 3, 2)
-
-    data = {
-        'age': age, 'sex': sex, 'cp': cp, 'trestbps': trestbps, 'chol': chol,
-        'fbs': fbs, 'restecg': restecg, 'thalach': thalach, 'exang': exang,
-        'oldpeak': oldpeak, 'slope': slope, 'ca': ca, 'thal': thal
+    """Collects user input from sidebar and returns a DataFrame"""
+    features = {
+        'age': st.sidebar.number_input("Age", 1, 120, 50),
+        'sex': st.sidebar.selectbox("Sex (1=Male, 0=Female)", [0, 1]),
+        'cp': st.sidebar.slider("Chest Pain Type (0-3)", 0, 3, 1),
+        'trestbps': st.sidebar.number_input("Resting BP", 80, 200, 120),
+        'chol': st.sidebar.number_input("Cholesterol", 100, 600, 200),
+        'fbs': st.sidebar.selectbox("Fasting Blood Sugar >120 mg/dl", [0, 1]),
+        'restecg': st.sidebar.slider("Resting ECG (0-2)", 0, 2, 1),
+        'thalach': st.sidebar.number_input("Max Heart Rate", 50, 250, 150),
+        'exang': st.sidebar.selectbox("Exercise Induced Angina", [0, 1]),
+        'oldpeak': st.sidebar.number_input("ST Depression", 0.0, 10.0, 1.0),
+        'slope': st.sidebar.slider("Slope of ST Segment (0-2)", 0, 2, 1),
+        'ca': st.sidebar.slider("Major Vessels (0-3)", 0, 3, 0),
+        'thal': st.sidebar.slider("Thalassemia (0-3)", 0, 3, 2)
     }
-    return pd.DataFrame(data, index=[0])
+    return pd.DataFrame(features, index=[0])
 
 input_df = user_input_features()
 
@@ -60,10 +57,14 @@ scaler_path = "models/scaler.pkl"
 
 if not (os.path.exists(model_path) and os.path.exists(scaler_path)):
     st.warning("Trained model or scaler not found. Please train your models first.")
-    st.stop()  # Stop execution so app doesn't crash
+    st.stop()
 else:
-    model = joblib.load(model_path)
-    scaler = joblib.load(scaler_path)
+    try:
+        model = joblib.load(model_path)
+        scaler = joblib.load(scaler_path)
+    except EOFError:
+        st.error("Model or scaler file is corrupted. Please re-train and re-upload the files.")
+        st.stop()
 
     # Preprocess input
     input_scaled = scaler.transform(input_df)
@@ -79,4 +80,4 @@ else:
     st.write("Heart Disease Risk:", "Yes" if prediction[0] == 1 else "No")
 
     st.subheader("Prediction Probability")
-    st.write(pd.DataFrame(prediction_proba, columns=model.classes_))
+    st.dataframe(pd.DataFrame(prediction_proba, columns=model.classes_))
