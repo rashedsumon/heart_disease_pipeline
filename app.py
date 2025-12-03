@@ -2,21 +2,32 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
 from data_loader import load_data
 from utils import preprocess_data
 
+# -------------------------------
+# Streamlit page configuration
+# -------------------------------
 st.set_page_config(page_title="Heart Disease Risk Prediction", layout="wide")
-
 st.title("💓 Heart Disease Risk Prediction")
 
+# -------------------------------
 # Load dataset
-df = load_data()
+# -------------------------------
+try:
+    df = load_data()
+    st.subheader("Dataset Preview")
+    st.dataframe(df.head())
+except FileNotFoundError as e:
+    st.error(f"Dataset not found: {e}")
+    st.stop()
 
-st.subheader("Dataset Preview")
-st.dataframe(df.head())
-
-# User Input for new patient
+# -------------------------------
+# Sidebar: User input
+# -------------------------------
 st.sidebar.header("Enter Patient Details")
+
 def user_input_features():
     age = st.sidebar.number_input("Age", 1, 120, 50)
     sex = st.sidebar.selectbox("Sex (1=Male,0=Female)", [0, 1])
@@ -37,25 +48,35 @@ def user_input_features():
         'fbs': fbs, 'restecg': restecg, 'thalach': thalach, 'exang': exang,
         'oldpeak': oldpeak, 'slope': slope, 'ca': ca, 'thal': thal
     }
-    features = pd.DataFrame(data, index=[0])
-    return features
+    return pd.DataFrame(data, index=[0])
 
 input_df = user_input_features()
 
-# Load trained model
+# -------------------------------
+# Load trained model & scaler
+# -------------------------------
 model_path = "models/model_rf.pkl"
 scaler_path = "models/scaler.pkl"
 
 if not (os.path.exists(model_path) and os.path.exists(scaler_path)):
-    st.warning("Models not found. Please train models first.")
+    st.warning("Trained model or scaler not found. Please train your models first.")
+    st.stop()  # Stop execution so app doesn't crash
 else:
     model = joblib.load(model_path)
     scaler = joblib.load(scaler_path)
+
+    # Preprocess input
     input_scaled = scaler.transform(input_df)
+
+    # Prediction
     prediction = model.predict(input_scaled)
     prediction_proba = model.predict_proba(input_scaled)
 
+    # -------------------------------
+    # Display results
+    # -------------------------------
     st.subheader("Prediction")
-    st.write("Heart Disease Risk:", "Yes" if prediction[0]==1 else "No")
+    st.write("Heart Disease Risk:", "Yes" if prediction[0] == 1 else "No")
+
     st.subheader("Prediction Probability")
-    st.write(prediction_proba)
+    st.write(pd.DataFrame(prediction_proba, columns=model.classes_))
