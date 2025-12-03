@@ -29,7 +29,6 @@ except FileNotFoundError as e:
 st.sidebar.header("Enter Patient Details")
 
 def user_input_features():
-    """Collects user input from sidebar and returns a DataFrame"""
     features = {
         'age': st.sidebar.number_input("Age", 1, 120, 50),
         'sex': st.sidebar.selectbox("Sex (1=Male, 0=Female)", [0, 1]),
@@ -50,13 +49,23 @@ def user_input_features():
 input_df = user_input_features()
 
 # -------------------------------
-# Load trained model & scaler
+# Sidebar: Model selection
 # -------------------------------
-model_path = "models/model_rf.pkl"
+st.sidebar.header("Select Model")
+model_options = {
+    "Random Forest": "models/model_rf.pkl",
+    "Logistic Regression": "models/model_lr.pkl",
+    "SVC": "models/model_svc.pkl"
+}
+selected_model_name = st.sidebar.selectbox("Choose a model", list(model_options.keys()))
+model_path = model_options[selected_model_name]
 scaler_path = "models/scaler.pkl"
 
+# -------------------------------
+# Load model and scaler safely
+# -------------------------------
 if not (os.path.exists(model_path) and os.path.exists(scaler_path)):
-    st.warning("Trained model or scaler not found. Please train your models first.")
+    st.warning(f"Model or scaler file not found. Please train your models first.")
     st.stop()
 else:
     try:
@@ -76,7 +85,7 @@ else:
     # -------------------------------
     # Display results
     # -------------------------------
-    st.subheader("Prediction")
+    st.subheader(f"Prediction using {selected_model_name}")
     st.write("Heart Disease Risk:", "Yes" if prediction[0] == 1 else "No")
 
     st.subheader("Prediction Probability")
